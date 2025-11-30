@@ -1,0 +1,44 @@
+{
+    "module_name": "quantum_keynav",
+    "maintainer": "Marcus Ofenhed",
+    "license": "MIT OR Apache-2.0",
+    "features": {
+        "digitizer": true,
+        "deferred_exec": true
+    },
+    "keycodes": [
+        {
+            "key": "KC_KEYNAV_LEFT"
+        },
+        {
+            "key": "KC_KEYNAV_DOWN"
+        },
+        {
+            "key": "KC_KEYNAV_UP"
+        },
+        {
+            "key": "KC_KEYNAV_RIGHT"
+        },
+        {
+            "key": "KC_KEYNAV_SHIFT_LEFT"
+        },
+        {
+            "key": "KC_KEYNAV_SHIFT_DOWN"
+        },
+        {
+            "key": "KC_KEYNAV_SHIFT_UP"
+        },
+        {
+            "key": "KC_KEYNAV_SHIFT_RIGHT"
+        },
+        {
+            "key": "KC_KEYNAV_RESET"
+        },
+        {
+            "key": "KC_KEYNAV_BTN1"
+        },
+        {
+            "key": "KC_KEYNAV_BTN2"
+        }
+    ]
+}
