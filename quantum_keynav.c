@@ -177,21 +177,22 @@ static void keynav_size_towards(keynav_axis_t *axis, int direction) {
 }
 
 void keynav_move(keynav_direction_t direction, bool zoom) {
+  int id = zoom ? 1 : 2;
   switch (direction) {
   case KEYNAV_LEFT:
-    keynav_size_towards(&keynav_state.x, -1);
+    keynav_size_towards(&keynav_state.x, -id);
     if (false) {
     case KEYNAV_RIGHT:
-      keynav_size_towards(&keynav_state.x, 1);
+      keynav_size_towards(&keynav_state.x, id);
     }
     if (zoom)
       ++keynav_state.x.step;
     break;
   case KEYNAV_UP:
-    keynav_size_towards(&keynav_state.y, -1);
+    keynav_size_towards(&keynav_state.y, -id);
     if (false) {
     case KEYNAV_DOWN:
-      keynav_size_towards(&keynav_state.y, 1);
+      keynav_size_towards(&keynav_state.y, id);
     }
     if (zoom)
       ++keynav_state.y.step;
