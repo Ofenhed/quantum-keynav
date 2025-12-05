@@ -93,23 +93,23 @@ layer_state_t layer_state_set_quantum_keynav(layer_state_t state) {
   return state;
 }
 
-#  ifndef KEYNAV_NO_AUTO_LAYER_OFF
+#ifndef KEYNAV_NO_AUTO_LAYER_OFF
 void post_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
   if (!record->event.pressed) {
     switch (keycode) {
-      case KC_KEYNAV_BTN1:
-      case KC_KEYNAV_BTN2:
-#    ifdef KEYNAV_MOUSE_BUTTONS_LAYER_OFF
-      case KC_MS_BTN1:
-      case KC_MS_BTN2:
-      case KC_MS_BTN3:
-#    endif
-        layer_off(KEYNAV_LAYER);
+    case KC_KEYNAV_BTN1:
+    case KC_KEYNAV_BTN2:
+#ifdef KEYNAV_MOUSE_BUTTONS_LAYER_OFF
+    case KC_MS_BTN1:
+    case KC_MS_BTN2:
+    case KC_MS_BTN3:
+#endif
+      layer_off(KEYNAV_LAYER);
     }
   }
   post_process_record_quantum_keynav_kb(keycode, record);
 }
-#  endif
+#endif
 #endif
 
 #if defined(KEYNAV_REMAP_MOUSE_BUTTONS) || defined(KEYNAV_REMAP_MOUSE_MOVEMENT)
@@ -211,7 +211,7 @@ bool process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
   case KC_KEYNAV_BTN1:
     keynav_state.button_1 = record->event.pressed;
     if (false) {
-  case KC_KEYNAV_BTN2:
+    case KC_KEYNAV_BTN2:
       keynav_state.button_2 = record->event.pressed;
     }
     keynav_flush_state();
