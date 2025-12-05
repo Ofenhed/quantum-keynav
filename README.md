@@ -37,14 +37,20 @@ Available options:
   enable/disable keynav when you activate/deactivate the specified layer,
   otherwise you have to manually do it with `keynav_start()` and
   `keynav_end()`.
-- `KEYNAV_NO_AUTO_LAYER_OFF`: Default behavior when a `KEYNAV_LAYER` is defined
-  is to deactivate this layer when `KC_KEYNAV_BTN1` or `KC_KEYNAV_BTN2` is
-  pressed. With this option defined, the layer will stay active.
-- `KEYNAV_REMAP_MOUSE`: Defining this will add a `pre_process_record` function
-  that remaps mouse movement buttons (e.g. `KC_MS_UP`) to keynav buttons (e.g.
-  `KC_KEYNAV_UP`) and primary and secondary mouse buttons to keynav buttons.
-  This is useful when you use a dedicated keynav layer and a mapping tool
-  without support for custom keys (such as [ORYX](https://configure.zsa.io)).
+- These are useful when you use a dedicated keynav layer and a mapping tool
+  without support for custom keys (such as [ORYX](https://configure.zsa.io)):
+  - `KEYNAV_REMAP_MOUSE_MOVEMENT`: Defining this will add a
+    `pre_process_record` function that remaps mouse movement buttons (e.g.
+    `KC_MS_UP`) to keynav buttons (e.g. `KC_KEYNAV_UP`).
+  - `KEYNAV_REMAP_MOUSE_BUTTONS` will remap primary and scroll mouse buttons to
+    keynav buttons.
+  - `KEYNAV_NO_AUTO_LAYER_OFF`: Default behavior when a `KEYNAV_LAYER` is
+    defined is to deactivate this layer when `KC_KEYNAV_BTN1` or
+    `KC_KEYNAV_BTN2` is pressed. With this option defined, the layer will stay
+    active.
+  - `KEYNAV_MOUSE_BUTTONS_LAYER_OFF`: This will match the behavior of mouse
+    button events (including `KC_MS_BTN2`) to the behavior of keynav button
+    events.
 - `KEYNAV_ASSUME_MAX_HEIGHT` and `KEYNAV_ASSUME_MAX_WIDTH`: The keyboard is not
   aware of the resolution of your desktop. Defining an assumed resolution makes
   it so that the pointer doesn't go (very far) into subpixel resolution.
