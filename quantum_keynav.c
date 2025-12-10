@@ -93,9 +93,9 @@ layer_state_t layer_state_set_quantum_keynav(layer_state_t state) {
   return state;
 }
 
-#ifndef KEYNAV_NO_AUTO_LAYER_OFF
+#if !defined(KEYNAV_NO_AUTO_LAYER_OFF) && defined(KEYNAV_LAYER)
 void post_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
-  if (!record->event.pressed) {
+  if (IS_LAYER_ON(KEYNAV_LAYER) && record->event.pressed) {
     switch (keycode) {
     case KC_KEYNAV_BTN1:
     case KC_KEYNAV_BTN2:
