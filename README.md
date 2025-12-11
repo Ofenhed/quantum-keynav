@@ -12,6 +12,10 @@ but installed on a QMK keyboard instead of as a program on the computer.
   be mitigated by disabling focus follows mouse when the `proximity-in` event
   is received, and turning it back on when `proximity-out` is received.
 - Not compatible with keynav config files.
+- Your keyboard is not aware of your display resolution, layout, or contents.
+  - You quickly end up in subpixel level accuracy. (See
+    `KEYNAV_ASSUME_MAX_WIDTH` and `KEYNAV_ASSUME_MAX_HEIGHT` below)
+  - You can't navigate on a single monitor, nor a single program window.
 - The linux operation is unfortunately not plug and play at this time. To make
   this run with X11 (and probably Wayland), see below.
 
@@ -41,7 +45,7 @@ Available options:
   without support for custom keys (such as [ORYX](https://configure.zsa.io)):
   - `KEYNAV_REMAP_MOUSE_MOVEMENT`: Defining this will add a
     `pre_process_record` function that remaps mouse movement buttons (e.g.
-    `KC_MS_UP`) to keynav buttons (e.g. `KC_KEYNAV_UP`).
+    `QK_MOUSE_CURSOR_UP`) to keynav buttons (e.g. `KC_KEYNAV_UP`).
   - `KEYNAV_REMAP_MOUSE_BUTTONS` will remap primary and scroll mouse buttons to
     keynav buttons.
   - `KEYNAV_NO_AUTO_LAYER_OFF`: Default behavior when a `KEYNAV_LAYER` is
@@ -49,9 +53,9 @@ Available options:
     `KC_KEYNAV_BTN2` is pressed. With this option defined, the layer will stay
     active.
   - `KEYNAV_MOUSE_BUTTONS_LAYER_OFF`: This will match the behavior of mouse
-    button events (including `KC_MS_BTN2`) to the behavior of keynav button
+    button events (including `QK_MOUSE_BUTTON_2`) to the behavior of keynav button
     events.
-- `KEYNAV_ASSUME_MAX_HEIGHT` and `KEYNAV_ASSUME_MAX_WIDTH`: The keyboard is not
+- `KEYNAV_ASSUME_MAX_WIDTH` and `KEYNAV_ASSUME_MAX_HEIGHT`: The keyboard is not
   aware of the resolution of your desktop. Defining an assumed resolution makes
   it so that the pointer doesn't go (very far) into subpixel resolution.
 - `KEYNAV_PROXIMITY_INTERVAL`: To mitigate bugs from tablets that doesn't

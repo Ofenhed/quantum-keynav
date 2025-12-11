@@ -100,9 +100,9 @@ void post_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
     case KC_KEYNAV_BTN1:
     case KC_KEYNAV_BTN2:
 #ifdef KEYNAV_MOUSE_BUTTONS_LAYER_OFF
-    case KC_MS_BTN1:
-    case KC_MS_BTN2:
-    case KC_MS_BTN3:
+    case QK_MOUSE_BUTTON_1:
+    case QK_MOUSE_BUTTON_2:
+    case QK_MOUSE_BUTTON_3:
 #endif
       layer_off(KEYNAV_LAYER);
     }
@@ -117,28 +117,28 @@ bool pre_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
   if (keynav_active()) {
     switch (keycode) {
 #ifdef KEYNAV_REMAP_MOUSE_MOVEMENT
-    case KC_MS_LEFT:
+    case QK_MOUSE_CURSOR_LEFT:
       record->keycode =
           (get_mods() & MOD_MASK_SHIFT) ? KC_KEYNAV_SHIFT_LEFT : KC_KEYNAV_LEFT;
       break;
-    case KC_MS_DOWN:
+    case QK_MOUSE_CURSOR_DOWN:
       record->keycode =
           (get_mods() & MOD_MASK_SHIFT) ? KC_KEYNAV_SHIFT_DOWN : KC_KEYNAV_DOWN;
       break;
-    case KC_MS_UP:
+    case QK_MOUSE_CURSOR_UP:
       record->keycode =
           (get_mods() & MOD_MASK_SHIFT) ? KC_KEYNAV_SHIFT_UP : KC_KEYNAV_UP;
       break;
-    case KC_MS_RIGHT:
+    case QK_MOUSE_CURSOR_RIGHT:
       record->keycode = (get_mods() & MOD_MASK_SHIFT) ? KC_KEYNAV_SHIFT_RIGHT
                                                       : KC_KEYNAV_RIGHT;
       break;
 #endif
 #ifdef KEYNAV_REMAP_MOUSE_BUTTONS
-    case KC_MS_BTN1:
+    case QK_MOUSE_BUTTON_1:
       record->keycode = KC_KEYNAV_BTN1;
       break;
-    case KC_MS_BTN3:
+    case QK_MOUSE_BUTTON_3:
       record->keycode = KC_KEYNAV_BTN2;
       break;
 #endif
