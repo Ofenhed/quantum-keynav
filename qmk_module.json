@@ -43,6 +43,9 @@
             "key": "QK_KEYNAV_RESET"
         },
         {
+            "key": "QK_KEYNAV_TOGGLE_ASSUMED_SCREEN_SIZE"
+        },
+        {
             "key": "QK_KEYNAV_BUTTON_1",
 	    "alias": "KN_BTN1"
         },

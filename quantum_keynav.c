@@ -4,24 +4,32 @@ ASSERT_COMMUNITY_MODULES_MIN_API_VERSION(1, 0, 0);
 #include <math.h>
 
 #ifndef KEYNAV_ASSUME_MAX_HEIGHT
+#error "No max height"
 #define KEYNAV_ASSUME_MAX_HEIGHT 0
 #endif
 #ifndef KEYNAV_ASSUME_MAX_WIDTH
+#error "No max width"
 #define KEYNAV_ASSUME_MAX_WIDTH 0
 #endif
 
-keynav_state_t keynav_state = {.keynav_in_range = INVALID_DEFERRED_TOKEN,
-                               .enabled = true,
-                               .x = {.assumed_size = KEYNAV_ASSUME_MAX_WIDTH},
-                               .y = {.assumed_size = KEYNAV_ASSUME_MAX_HEIGHT}};
+keynav_state_t keynav_state = {
+    .keynav_in_range = INVALID_DEFERRED_TOKEN,
+    .enabled = true,
+    .assume_screen_size = true,
+    .x = {.assumed_pixel_size = KEYNAV_ASSUME_MAX_WIDTH
+                                    ? 1.0f / KEYNAV_ASSUME_MAX_WIDTH
+                                    : 0.0 / 0.0},
+    .y = {.assumed_pixel_size = KEYNAV_ASSUME_MAX_HEIGHT
+                                    ? 1.0f / KEYNAV_ASSUME_MAX_HEIGHT
+                                    : 0.0 / 0.0}};
 
 bool keynav_active(void) {
   return keynav_state.keynav_in_range != INVALID_DEFERRED_TOKEN;
 }
 
 void keynav_reset(void) {
-  keynav_state.x.step = 1;
-  keynav_state.y.step = 1;
+  keynav_state.x.window_width = 1.0f / 4;
+  keynav_state.y.window_width = 1.0f / 4;
   keynav_state.x.coord = 0.5f;
   keynav_state.y.coord = 0.5f;
   keynav_state.button_1 = false;
@@ -156,46 +164,37 @@ static float into_valid_percent(float val) {
   return val;
 }
 
-static void keynav_size_towards(keynav_axis_t *axis, int direction) {
-  int step = 1 << axis->step;
-  float assumed_pixel_size = 1.0f / axis->assumed_size;
-  float closest_next = axis->assumed_size
-                           ? (axis->coord + assumed_pixel_size * direction)
-                           : nextafter(axis->coord, 2.0f * direction);
-  if (step == 0) {
-    axis->coord = closest_next;
-  }
-  float diff = 0.5f / step;
-  float new_coord = axis->coord + (diff * direction);
-  if ((axis->assumed_size && diff < assumed_pixel_size) ||
-      (!axis->assumed_size && new_coord == axis->coord)) {
-    axis->coord = closest_next;
-  } else {
-    axis->coord = new_coord;
-  }
-  axis->coord = into_valid_percent(axis->coord);
+static void keynav_move_towards(keynav_axis_t *axis, int direction) {
+  const float minimal_change =
+      isnan(axis->assumed_pixel_size)
+          ? nextafter(axis->coord, 2.0f * direction) - axis->coord
+          : axis->assumed_pixel_size * direction;
+  const float diff = axis->window_width < fabs(minimal_change)
+                         ? minimal_change
+                         : axis->window_width * direction;
+  axis->coord = into_valid_percent(axis->coord + diff);
 }
 
 void keynav_move(keynav_direction_t direction, bool zoom) {
   int id = zoom ? 1 : 2;
   switch (direction) {
   case KEYNAV_LEFT:
-    keynav_size_towards(&keynav_state.x, -id);
+    keynav_move_towards(&keynav_state.x, -id);
     if (false) {
     case KEYNAV_RIGHT:
-      keynav_size_towards(&keynav_state.x, id);
+      keynav_move_towards(&keynav_state.x, id);
     }
     if (zoom)
-      ++keynav_state.x.step;
+      keynav_state.x.window_width /= 2;
     break;
   case KEYNAV_UP:
-    keynav_size_towards(&keynav_state.y, -id);
+    keynav_move_towards(&keynav_state.y, -id);
     if (false) {
     case KEYNAV_DOWN:
-      keynav_size_towards(&keynav_state.y, id);
+      keynav_move_towards(&keynav_state.y, id);
     }
     if (zoom)
-      ++keynav_state.y.step;
+      keynav_state.y.window_width /= 2;
     break;
   default:
     return;
@@ -245,6 +244,9 @@ bool process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
     break;
   case QK_KEYNAV_MOVE_RIGHT:
     keynav_move(KEYNAV_RIGHT, false);
+    break;
+  case QK_KEYNAV_TOGGLE_ASSUMED_SCREEN_SIZE:
+    keynav_state.assume_screen_size = !keynav_state.assume_screen_size;
     break;
 #ifdef KEYNAV_LAYER
   case TO(KEYNAV_LAYER):

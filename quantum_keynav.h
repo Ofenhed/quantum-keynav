@@ -10,8 +10,8 @@ typedef enum {
 
 typedef struct {
   float coord;
-  int step;
-  int assumed_size;
+  float window_width;
+  float assumed_pixel_size;
 } keynav_axis_t;
 
 typedef struct {
@@ -22,6 +22,8 @@ typedef struct {
   bool button_1;
   bool button_2;
   bool enabled;
+
+  bool assume_screen_size;
 } keynav_state_t;
 
 extern keynav_state_t keynav_state;
