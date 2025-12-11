@@ -45,13 +45,13 @@ Available options:
   without support for custom keys (such as [ORYX](https://configure.zsa.io)):
   - `KEYNAV_REMAP_MOUSE_MOVEMENT`: Defining this will add a
     `pre_process_record` function that remaps mouse movement buttons (e.g.
-    `QK_MOUSE_CURSOR_UP`) to keynav buttons (e.g. `KC_KEYNAV_UP`).
+    `QK_MOUSE_CURSOR_UP`) to keynav buttons (e.g. `QK_KEYNAV_CUT_UP`).
   - `KEYNAV_REMAP_MOUSE_BUTTONS` will remap primary and scroll mouse buttons to
     keynav buttons.
   - `KEYNAV_NO_AUTO_LAYER_OFF`: Default behavior when a `KEYNAV_LAYER` is
-    defined is to deactivate this layer when `KC_KEYNAV_BTN1` or
-    `KC_KEYNAV_BTN2` is pressed. With this option defined, the layer will stay
-    active.
+    defined is to deactivate this layer when `QK_KEYNAV_BUTTON_1` or
+    `QK_KEYNAV_BUTTON_2` is pressed. With this option defined, the layer will
+    stay active.
   - `KEYNAV_MOUSE_BUTTONS_LAYER_OFF`: This will match the behavior of mouse
     button events (including `QK_MOUSE_BUTTON_2`) to the behavior of keynav button
     events.
@@ -68,15 +68,15 @@ Available options:
 
 Available keys:
 - Select a subwindow of the current navigation window:
-  - `KC_KEYNAV_LEFT`
-  - `KC_KEYNAV_DOWN`
-  - `KC_KEYNAV_UP`
-  - `KC_KEYNAV_RIGHT`
+  - `QK_KEYNAV_CUT_LEFT`
+  - `QK_KEYNAV_CUT_DOWN`
+  - `QK_KEYNAV_CUT_UP`
+  - `QK_KEYNAV_CUT_RIGHT`
 - Move the keynav window without changing the size of the window:
-  - `KC_KEYNAV_SHIFT_LEFT`
-  - `KC_KEYNAV_SHIFT_DOWN`
-  - `KC_KEYNAV_SHIFT_UP`
-  - `KC_KEYNAV_SHIFT_RIGHT`
-- `KC_KEYNAV_BTN1` (also known as `TABLET_TOOL_TIP`)
-- `KC_KEYNAV_BTN2` (also known as `TABLET_TOOL_BUTTON`/`BTN_STYLUS`)
-- `KC_KEYNAV_RESET`: Reset the window to the full size and move the mouse to the center of the window.
+  - `QK_KEYNAV_MOVE_LEFT`
+  - `QK_KEYNAV_MOVE_DOWN`
+  - `QK_KEYNAV_MOVE_UP`
+  - `QK_KEYNAV_MOVE_RIGHT`
+- `QK_KEYNAV_BUTTON_1` (also known as `TABLET_TOOL_TIP`)
+- `QK_KEYNAV_BUTTON_2` (also known as `TABLET_TOOL_BUTTON`/`BTN_STYLUS`)
+- `QK_KEYNAV_RESET`: Reset the window to the full size and move the mouse to the center of the window.
