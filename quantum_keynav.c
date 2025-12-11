@@ -91,7 +91,7 @@ void keynav_flush_state(void) {
 
 #ifdef KEYNAV_LAYER
 layer_state_t layer_state_set_quantum_keynav(layer_state_t state) {
-  if (layer_state_cmp(state, KEYNAV_LAYER)) {
+  if (IS_LAYER_ON_STATE(state, KEYNAV_LAYER)) {
     if (!keynav_active()) {
       keynav_start();
     }
