@@ -4,12 +4,13 @@ ASSERT_COMMUNITY_MODULES_MIN_API_VERSION(1, 0, 0);
 #include <math.h>
 
 #ifndef KEYNAV_ASSUME_MAX_HEIGHT
-#error "No max height"
 #define KEYNAV_ASSUME_MAX_HEIGHT 0
 #endif
 #ifndef KEYNAV_ASSUME_MAX_WIDTH
-#error "No max width"
 #define KEYNAV_ASSUME_MAX_WIDTH 0
+#endif
+#if !defined(DYNAMIC_MACRO_ENABLE) && defined(DYNAMIC_MACRO_NO_KEYNAV_MOVE)
+#error "Dynamic macro not enabled"
 #endif
 
 keynav_state_t keynav_state = {
@@ -27,6 +28,10 @@ bool keynav_active(void) {
   return keynav_state.keynav_in_range != INVALID_DEFERRED_TOKEN;
 }
 
+#ifdef DYNAMIC_MACRO_NO_KEYNAV_MOVE
+static uint8_t macro_state;
+#endif
+
 void keynav_reset(void) {
   keynav_state.x.window_width = 1.0f / 4;
   keynav_state.y.window_width = 1.0f / 4;
@@ -35,7 +40,6 @@ void keynav_reset(void) {
   keynav_state.button_1 = false;
   keynav_state.button_2 = false;
   if (keynav_active()) {
-    digitizer_state.in_range = true;
     digitizer_state.dirty = true;
     keynav_flush_state();
   }
@@ -43,9 +47,12 @@ void keynav_reset(void) {
 
 void keynav_end(void) {
   if (keynav_active()) {
-    digitizer_state.in_range = false;
+    keynav_state.button_1 = false;
+    keynav_state.button_2 = false;
     digitizer_state.dirty = true;
-    cancel_deferred_exec(keynav_state.keynav_in_range);
+
+    if (keynav_state.keynav_in_range != INVALID_DEFERRED_TOKEN)
+      cancel_deferred_exec(keynav_state.keynav_in_range);
     keynav_state.keynav_in_range = INVALID_DEFERRED_TOKEN;
     keynav_flush_state();
   }
@@ -57,6 +64,11 @@ void keynav_end(void) {
 
 static uint32_t keynav_ping_proximity_callback(uint32_t trigger_time,
                                                void *cb_arg) {
+#ifdef DYNAMIC_MACRO_NO_KEYNAV_MOVE
+  if (macro_state != 0) {
+    return KEYNAV_PROXIMITY_INTERVAL;
+  }
+#endif
   digitizer_state.dirty = true;
   keynav_flush_state();
   return KEYNAV_PROXIMITY_INTERVAL;
@@ -73,18 +85,44 @@ void keynav_start(void) {
 }
 
 void keynav_flush_state(void) {
-  bool in_keynav_mode = keynav_active();
-  digitizer_state.dirty |= digitizer_state.x != keynav_state.x.coord ||
-                           digitizer_state.y != keynav_state.y.coord ||
-                           digitizer_state.in_range != in_keynav_mode ||
-                           digitizer_state.tip != keynav_state.button_1 ||
-                           digitizer_state.barrel != keynav_state.button_2;
+  const bool in_keynav_mode = keynav_active();
+  const bool in_macro_mode =
+#ifdef DYNAMIC_MACRO_NO_KEYNAV_MOVE
+      macro_state != 0;
+#else
+      false;
+#endif
+
+  const bool pointer_moved = digitizer_state.x != keynav_state.x.coord ||
+                             digitizer_state.y != keynav_state.y.coord;
+  const bool button_changed = digitizer_state.tip != keynav_state.button_1 ||
+                              digitizer_state.barrel != keynav_state.button_2;
+  const bool in_range =
+      in_macro_mode ? (button_changed && in_keynav_mode) : in_keynav_mode;
+  const bool in_range_changed = digitizer_state.in_range != in_range;
+  digitizer_state.dirty |= (in_macro_mode ? false : pointer_moved) ||
+                           button_changed || in_range_changed;
+
   if (digitizer_state.dirty) {
     digitizer_state.x = keynav_state.x.coord;
     digitizer_state.y = keynav_state.y.coord;
-    digitizer_state.tip = keynav_state.button_1;
-    digitizer_state.barrel = keynav_state.button_2;
-    digitizer_state.in_range = in_keynav_mode;
+    const bool buttons_first = digitizer_state.in_range;
+    if (buttons_first) {
+      digitizer_state.tip = keynav_state.button_1;
+      digitizer_state.barrel = keynav_state.button_2;
+    } else {
+      digitizer_state.in_range = in_range;
+    }
+    if (in_macro_mode && button_changed) {
+      digitizer_flush();
+      digitizer_state.dirty = true;
+    }
+    if (!buttons_first) {
+      digitizer_state.tip = keynav_state.button_1;
+      digitizer_state.barrel = keynav_state.button_2;
+    } else {
+      digitizer_state.in_range = in_range;
+    }
     digitizer_flush();
   }
 }
@@ -100,6 +138,7 @@ layer_state_t layer_state_set_quantum_keynav(layer_state_t state) {
   }
   return state;
 }
+#endif // KEYNAV_LAYER
 
 #if !defined(KEYNAV_NO_AUTO_LAYER_OFF) && defined(KEYNAV_LAYER)
 void post_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
@@ -111,17 +150,31 @@ void post_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
     case QK_MOUSE_BUTTON_1:
     case QK_MOUSE_BUTTON_2:
     case QK_MOUSE_BUTTON_3:
-#endif
+#endif // KEYNAV_MOUSE_BUTTONS_LAYER_OFF
       layer_off(KEYNAV_LAYER);
     }
   }
   post_process_record_quantum_keynav_kb(keycode, record);
 }
-#endif
-#endif
+#endif // !defined(KEYNAV_NO_AUTO_LAYER_OFF) && defined(KEYNAV_LAYER)
 
-#if defined(KEYNAV_REMAP_MOUSE_BUTTONS) || defined(KEYNAV_REMAP_MOUSE_MOVEMENT)
+#if defined(KEYNAV_REMAP_MOUSE_BUTTONS) ||                                     \
+    defined(KEYNAV_REMAP_MOUSE_MOVEMENT) ||                                    \
+    defined(DYNAMIC_MACRO_NO_KEYNAV_MOVE)
 bool pre_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
+#ifdef DYNAMIC_MACRO_NO_KEYNAV_MOVE
+  if (keynav_state.enabled) {
+    switch (keycode) {
+    case QK_DYNAMIC_MACRO_PLAY_1:
+      record->keycode = QK_KEYNAV_DYNAMIC_MACRO_PLAY_1;
+      if (false) {
+      case QK_DYNAMIC_MACRO_PLAY_2:
+        record->keycode = QK_KEYNAV_DYNAMIC_MACRO_PLAY_2;
+      }
+      return pre_process_record_quantum_keynav_kb(record->keycode, record);
+    }
+  }
+#endif // DYNAMIC_MACRO_NO_KEYNAV_MOVE
   if (keynav_active()) {
     switch (keycode) {
 #ifdef KEYNAV_REMAP_MOUSE_MOVEMENT
@@ -141,7 +194,7 @@ bool pre_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
       record->keycode = (get_mods() & MOD_MASK_SHIFT) ? QK_KEYNAV_MOVE_RIGHT
                                                       : QK_KEYNAV_CUT_RIGHT;
       break;
-#endif
+#endif // KEYNAV_REMAP_MOUSE_MOVEMENT
 #ifdef KEYNAV_REMAP_MOUSE_BUTTONS
     case QK_MOUSE_BUTTON_1:
       record->keycode = QK_KEYNAV_BUTTON_1;
@@ -149,12 +202,13 @@ bool pre_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
     case QK_MOUSE_BUTTON_3:
       record->keycode = QK_KEYNAV_BUTTON_2;
       break;
-#endif
+#endif // KEYNAV_REMAP_MOUSE_BUTTONS
     }
   }
   return pre_process_record_quantum_keynav_kb(record->keycode, record);
 }
-#endif
+#endif // defined(KEYNAV_REMAP_MOUSE_BUTTONS) ||
+       // defined(KEYNAV_REMAP_MOUSE_MOVEMENT)
 
 static float into_valid_percent(float val) {
   if (val > 1.0f)
@@ -202,16 +256,36 @@ void keynav_move(keynav_direction_t direction, bool zoom) {
   keynav_flush_state();
 }
 
+#ifdef DYNAMIC_MACRO_NO_KEYNAV_MOVE
+bool process_dynamic_macro(uint16_t keycode, keyrecord_t *record);
+#endif
+
 bool process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
+#ifdef DYNAMIC_MACRO_NO_KEYNAV_MOVE
+  bool result = false;
+  switch (keycode) {
+  case QK_KEYNAV_DYNAMIC_MACRO_PLAY_1:
+    macro_state |= 1;
+    result = process_dynamic_macro(QK_DYNAMIC_MACRO_PLAY_1, record);
+    macro_state &= ~1;
+    return result;
+  case QK_KEYNAV_DYNAMIC_MACRO_PLAY_2:
+    macro_state |= 2;
+    result = process_dynamic_macro(QK_DYNAMIC_MACRO_PLAY_2, record);
+    macro_state &= ~2;
+    return result;
+  }
+#endif
+
   if (!keynav_active())
     return true;
 
   switch (keycode) {
   case QK_KEYNAV_BUTTON_1:
-    keynav_state.button_1 = record->event.pressed;
+    keynav_state.button_1 = record->event.pressed != 0;
     if (false) {
     case QK_KEYNAV_BUTTON_2:
-      keynav_state.button_2 = record->event.pressed;
+      keynav_state.button_2 = record->event.pressed != 0;
     }
     keynav_flush_state();
     return process_record_quantum_keynav_kb(keycode, record);

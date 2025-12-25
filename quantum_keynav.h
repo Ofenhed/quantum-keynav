@@ -19,11 +19,11 @@ typedef struct {
 
   keynav_axis_t x;
   keynav_axis_t y;
-  bool button_1;
-  bool button_2;
-  bool enabled;
+  unsigned int button_1 : 1;
+  unsigned int button_2 : 1;
+  unsigned int enabled : 1;
 
-  bool assume_screen_size;
+  unsigned int assume_screen_size : 1;
 } keynav_state_t;
 
 extern keynav_state_t keynav_state;

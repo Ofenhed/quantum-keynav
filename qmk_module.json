@@ -52,6 +52,12 @@
         {
             "key": "QK_KEYNAV_BUTTON_2",
 	    "alias": "KN_BTN2"
+        },
+        {
+            "key": "QK_KEYNAV_DYNAMIC_MACRO_PLAY_1"
+        },
+        {
+            "key": "QK_KEYNAV_DYNAMIC_MACRO_PLAY_2"
         }
     ]
 }
