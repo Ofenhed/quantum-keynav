@@ -65,8 +65,11 @@ Available options:
   50 ms (on my machine). To avoid timeouts, the keyboard will send updates at
   an interval of ~20 ms. If you want another interval, then you can set it with
   this option.
-- `DYNAMIC_MACRO_NO_KEYNAV_MOVE`: When playing a macro, only move the cursor
-  when `QK_KEYNAV_BUTTON_1` or `QK_KEYNAV_BUTTON_2` is pressed.
+- `DYNAMIC_MACRO_KEYNAV_ONLY_FINAL`: When playing a macro, only move the cursor
+  to where navigation ends or `QK_KEYNAV_BUTTON_1` or `QK_KEYNAV_BUTTON_2` is
+  pressed.
+- `DYNAMIC_MACRO_KEYNAV_DELAY`: After playing a macro, delay for the keyboard
+  and navigation to be synced up by the OS.
 
 Available keys:
 - Select a subwindow of the current navigation window:
