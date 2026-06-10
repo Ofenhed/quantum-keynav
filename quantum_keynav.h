@@ -15,13 +15,14 @@ typedef struct {
 } keynav_axis_t;
 
 typedef struct {
-  deferred_token keynav_in_range;
+  deferred_token active;
 
   keynav_axis_t x;
   keynav_axis_t y;
   unsigned int button_1 : 1;
   unsigned int button_2 : 1;
   unsigned int enabled : 1;
+  unsigned int in_range : 1;
 
   unsigned int assume_screen_size : 1;
 } keynav_state_t;
@@ -32,5 +33,6 @@ bool keynav_active(void);
 void keynav_reset(void);
 void keynav_end(void);
 void keynav_start(void);
+void keynav_enter(void);
 void keynav_flush_state(void);
 void keynav_move(keynav_direction_t direction, bool zoom);

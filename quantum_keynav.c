@@ -14,7 +14,8 @@ ASSERT_COMMUNITY_MODULES_MIN_API_VERSION(1, 0, 0);
 #endif
 
 keynav_state_t keynav_state = {
-    .keynav_in_range = INVALID_DEFERRED_TOKEN,
+    .active = INVALID_DEFERRED_TOKEN,
+    .in_range = false,
     .enabled = true,
     .assume_screen_size = true,
     .x = {.assumed_pixel_size = KEYNAV_ASSUME_MAX_WIDTH
@@ -25,7 +26,7 @@ keynav_state_t keynav_state = {
                                     : 0.0 / 0.0}};
 
 bool keynav_active(void) {
-  return keynav_state.keynav_in_range != INVALID_DEFERRED_TOKEN;
+  return keynav_state.active != INVALID_DEFERRED_TOKEN;
 }
 
 #ifdef DYNAMIC_MACRO_NO_KEYNAV_MOVE
@@ -39,6 +40,7 @@ void keynav_reset(void) {
   keynav_state.y.coord = 0.5f;
   keynav_state.button_1 = false;
   keynav_state.button_2 = false;
+  keynav_state.in_range = false;
   if (keynav_active()) {
     digitizer_state.dirty = true;
     keynav_flush_state();
@@ -51,9 +53,12 @@ void keynav_end(void) {
     keynav_state.button_2 = false;
     digitizer_state.dirty = true;
 
-    if (keynav_state.keynav_in_range != INVALID_DEFERRED_TOKEN)
-      cancel_deferred_exec(keynav_state.keynav_in_range);
-    keynav_state.keynav_in_range = INVALID_DEFERRED_TOKEN;
+    if (keynav_state.active != INVALID_DEFERRED_TOKEN) {
+      keynav_enter();
+      cancel_deferred_exec(keynav_state.active);
+    }
+    keynav_state.in_range = false;
+    keynav_state.active = INVALID_DEFERRED_TOKEN;
     keynav_flush_state();
   }
 }
@@ -77,52 +82,37 @@ static uint32_t keynav_ping_proximity_callback(uint32_t trigger_time,
 void keynav_start(void) {
   if (keynav_state.enabled) {
     if (!keynav_active()) {
-      keynav_state.keynav_in_range = defer_exec(
-          KEYNAV_PROXIMITY_INTERVAL, keynav_ping_proximity_callback, NULL);
+      keynav_state.active = defer_exec(KEYNAV_PROXIMITY_INTERVAL,
+                                       keynav_ping_proximity_callback, NULL);
       keynav_reset();
     }
   }
 }
 
+void keynav_enter(void) {
+  if (!keynav_state.in_range) {
+    keynav_state.in_range = true;
+    keynav_flush_state();
+  }
+}
+
 void keynav_flush_state(void) {
-  const bool in_keynav_mode = keynav_active();
-  const bool in_macro_mode =
-#ifdef DYNAMIC_MACRO_NO_KEYNAV_MOVE
-      macro_state != 0;
-#else
-      false;
-#endif
+  const bool in_range = keynav_active() && keynav_state.in_range;
 
   const bool pointer_moved = digitizer_state.x != keynav_state.x.coord ||
                              digitizer_state.y != keynav_state.y.coord;
   const bool button_changed = digitizer_state.tip != keynav_state.button_1 ||
                               digitizer_state.barrel != keynav_state.button_2;
-  const bool in_range =
-      in_macro_mode ? (button_changed && in_keynav_mode) : in_keynav_mode;
   const bool in_range_changed = digitizer_state.in_range != in_range;
-  digitizer_state.dirty |= (in_macro_mode ? false : pointer_moved) ||
-                           button_changed || in_range_changed;
+  digitizer_state.dirty |= pointer_moved || button_changed || in_range_changed;
 
   if (digitizer_state.dirty) {
     digitizer_state.x = keynav_state.x.coord;
     digitizer_state.y = keynav_state.y.coord;
-    const bool buttons_first = digitizer_state.in_range;
-    if (buttons_first) {
-      digitizer_state.tip = keynav_state.button_1;
-      digitizer_state.barrel = keynav_state.button_2;
-    } else {
-      digitizer_state.in_range = in_range;
-    }
-    if (in_macro_mode && button_changed) {
-      digitizer_flush();
-      digitizer_state.dirty = true;
-    }
-    if (!buttons_first) {
-      digitizer_state.tip = keynav_state.button_1;
-      digitizer_state.barrel = keynav_state.button_2;
-    } else {
-      digitizer_state.in_range = in_range;
-    }
+    digitizer_state.tip = keynav_state.button_1;
+    digitizer_state.barrel = keynav_state.button_2;
+    digitizer_state.in_range = in_range;
+
     digitizer_flush();
   }
 }
@@ -132,6 +122,10 @@ layer_state_t layer_state_set_quantum_keynav(layer_state_t state) {
   if (IS_LAYER_ON_STATE(state, KEYNAV_LAYER)) {
     if (!keynav_active()) {
       keynav_start();
+#ifdef DYNAMIC_MACRO_NO_KEYNAV_MOVE
+      if (!macro_state)
+#endif
+        keynav_enter();
     }
   } else if (keynav_active()) {
     keynav_end();
@@ -172,6 +166,15 @@ bool pre_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
         record->keycode = QK_KEYNAV_DYNAMIC_MACRO_PLAY_2;
       }
       return pre_process_record_quantum_keynav_kb(record->keycode, record);
+    case QK_MOUSE_BUTTON_1:
+    case QK_MOUSE_BUTTON_2:
+    case QK_MOUSE_BUTTON_3:
+    case QK_KEYNAV_BUTTON_1:
+    case QK_KEYNAV_BUTTON_2:
+      if (keynav_active()) {
+        keynav_enter();
+      }
+      break;
     }
   }
 #endif // DYNAMIC_MACRO_NO_KEYNAV_MOVE
@@ -208,7 +211,8 @@ bool pre_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
   return pre_process_record_quantum_keynav_kb(record->keycode, record);
 }
 #endif // defined(KEYNAV_REMAP_MOUSE_BUTTONS) ||
-       // defined(KEYNAV_REMAP_MOUSE_MOVEMENT)
+       // defined(KEYNAV_REMAP_MOUSE_MOVEMENT) ||
+       // defined(DYNAMIC_MACRO_NO_KEYNAV_MOVE)
 
 static float into_valid_percent(float val) {
   if (val > 1.0f)
@@ -278,7 +282,7 @@ bool process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
 #endif
 
   if (!keynav_active())
-    return true;
+    return process_record_quantum_keynav_kb(keycode, record);
 
   switch (keycode) {
   case QK_KEYNAV_BUTTON_1:
@@ -287,7 +291,7 @@ bool process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
     case QK_KEYNAV_BUTTON_2:
       keynav_state.button_2 = record->event.pressed != 0;
     }
-    keynav_flush_state();
+    keynav_enter();
     return process_record_quantum_keynav_kb(keycode, record);
   }
 
