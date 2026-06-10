@@ -20,7 +20,7 @@ but installed on a QMK keyboard instead of as a program on the computer.
   this run with X11 (and probably Wayland), see below.
 
 ## How to make this work with Linux (with libinput)
-`/usr/lib/udev/hwdb.d/60-tablet-resolution.hwdb`: (see [`remarkable_mouse#18`](https://github.com/Evidlo/remarkable_mouse/issues/18#issuecomment-576887912))
+`/usr/lib/udev/hwdb.d/60-tablet-resolution.hwdb`: (See [`remarkable_mouse#18`](https://github.com/Evidlo/remarkable_mouse/issues/18#issuecomment-576887912). This file is not required since `qmk_firmware` `0.33.0`, see [#25958](https://github.com/qmk/qmk_firmware/pull/25958))
 ```
 evdev:YOUR_SYS_INPUT_MODALIAS_GOES_HERE
  EVDEV_ABS_00=::20
