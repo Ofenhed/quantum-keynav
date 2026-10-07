@@ -29,11 +29,11 @@ keynav_state_t keynav_state = {
                                     : 0.0 / 0.0}};
 
 bool keynav_active(void) {
-  return keynav_state.active != INVALID_DEFERRED_TOKEN;
+  return keynav_state.enabled && keynav_state.active != INVALID_DEFERRED_TOKEN;
 }
 
 #ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
-static uint8_t macro_state;
+static uint8_t macro_state = 0;
 #endif
 
 void keynav_reset(void) {
@@ -78,7 +78,7 @@ void keynav_end(void) {
 static uint32_t keynav_ping_proximity_callback(uint32_t trigger_time,
                                                void *cb_arg) {
 #ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
-  if (macro_state != 0) {
+  if (keynav_state.macro_blocked != 0) {
     return KEYNAV_PROXIMITY_INTERVAL;
   }
 #endif
@@ -150,7 +150,7 @@ layer_state_t layer_state_set_quantum_keynav(layer_state_t state) {
 
 #if !defined(KEYNAV_NO_AUTO_LAYER_OFF) && defined(KEYNAV_LAYER)
 void post_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
-  if (IS_LAYER_ON(KEYNAV_LAYER) && record->event.pressed) {
+  if (IS_LAYER_ON(KEYNAV_LAYER) && !record->event.pressed) {
     switch (keycode) {
     case QK_KEYNAV_BUTTON_1:
     case QK_KEYNAV_BUTTON_2:
@@ -183,35 +183,45 @@ bool pre_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
     }
   }
 #endif // DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
-  if (keynav_active()) {
-    switch (keycode) {
+  switch (keycode) {
+#define KEYNAV_INTERNAL_GRAB_KEYUP() { \
+          static bool was_clicked = false; \
+          if (!(keynav_active() || was_clicked)) break; \
+          was_clicked = record->event.pressed; \
+        }
 #ifdef KEYNAV_REMAP_MOUSE_MOVEMENT
     case QK_MOUSE_CURSOR_LEFT:
+      KEYNAV_INTERNAL_GRAB_KEYUP();
       record->keycode = (get_mods() & MOD_MASK_SHIFT) ? QK_KEYNAV_MOVE_LEFT
                                                       : QK_KEYNAV_CUT_LEFT;
       break;
     case QK_MOUSE_CURSOR_DOWN:
+      KEYNAV_INTERNAL_GRAB_KEYUP();
       record->keycode = (get_mods() & MOD_MASK_SHIFT) ? QK_KEYNAV_MOVE_DOWN
                                                       : QK_KEYNAV_CUT_DOWN;
       break;
     case QK_MOUSE_CURSOR_UP:
+      KEYNAV_INTERNAL_GRAB_KEYUP();
       record->keycode =
           (get_mods() & MOD_MASK_SHIFT) ? QK_KEYNAV_MOVE_UP : QK_KEYNAV_CUT_UP;
       break;
     case QK_MOUSE_CURSOR_RIGHT:
+      KEYNAV_INTERNAL_GRAB_KEYUP();
       record->keycode = (get_mods() & MOD_MASK_SHIFT) ? QK_KEYNAV_MOVE_RIGHT
                                                       : QK_KEYNAV_CUT_RIGHT;
       break;
 #endif // KEYNAV_REMAP_MOUSE_MOVEMENT
 #ifdef KEYNAV_REMAP_MOUSE_BUTTONS
     case QK_MOUSE_BUTTON_1:
+      KEYNAV_INTERNAL_GRAB_KEYUP();
       record->keycode = QK_KEYNAV_BUTTON_1;
       break;
     case QK_MOUSE_BUTTON_3:
+      KEYNAV_INTERNAL_GRAB_KEYUP();
       record->keycode = QK_KEYNAV_BUTTON_2;
       break;
 #endif // KEYNAV_REMAP_MOUSE_BUTTONS
-    }
+#undef KEYNAV_INTERNAL_GRAB_KEYUP
   }
   return pre_process_record_quantum_keynav_kb(record->keycode, record);
 }
@@ -273,15 +283,18 @@ bool process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
 #ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
   bool result = false;
   switch (keycode) {
+    int before;
   case QK_KEYNAV_DYNAMIC_MACRO_PLAY_1:
+    before = macro_state & 1;
     macro_state |= 1;
     result = process_dynamic_macro(QK_DYNAMIC_MACRO_PLAY_1, record);
-    macro_state &= ~1;
+    macro_state &= ~before;
     return result;
   case QK_KEYNAV_DYNAMIC_MACRO_PLAY_2:
+    before = macro_state & 2;
     macro_state |= 2;
     result = process_dynamic_macro(QK_DYNAMIC_MACRO_PLAY_2, record);
-    macro_state &= ~2;
+    macro_state &= ~before;
     return result;
   }
 #endif
@@ -293,8 +306,10 @@ bool process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
   case QK_KEYNAV_BUTTON_1:
   case QK_KEYNAV_BUTTON_2:
 #ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
-    keynav_state.macro_blocked = false;
-    keynav_flush_state();
+    if (keynav_state.macro_blocked) {
+      keynav_state.macro_blocked = false;
+      keynav_flush_state();
+    }
 #endif // DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
     if (keycode == QK_KEYNAV_BUTTON_1) {
       keynav_state.button_1 = record->event.pressed != 0;
