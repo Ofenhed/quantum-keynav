@@ -43,11 +43,19 @@ Available options:
   `keynav_end()`.
 - These are useful when you use a dedicated keynav layer and a mapping tool
   without support for custom keys (such as [ORYX](https://configure.zsa.io)):
-  - `KEYNAV_REMAP_MOUSE_MOVEMENT`: Defining this will add a
-    `pre_process_record` function that remaps mouse movement buttons (e.g.
-    `QK_MOUSE_CURSOR_UP`) to keynav buttons (e.g. `QK_KEYNAV_CUT_UP`).
-  - `KEYNAV_REMAP_MOUSE_BUTTONS` will remap primary and scroll mouse buttons to
-    keynav buttons.
+  - **Remapping**
+    - `KEYNAV_REMAP_MOUSE_MOVEMENT` will make the function
+      `keynav_remap_quantum` remap mouse movement buttons (e.g.
+      `QK_MOUSE_CURSOR_UP`) to keynav buttons (e.g. `QK_KEYNAV_CUT_UP`).
+    - `KEYNAV_REMAP_MOUSE_BUTTONS` will make the function `keynav_remap_quantum()`
+      remap primary and scroll mouse buttons to keynav buttons.
+    - `KEYNAV_NO_HIJACK_KEYCODE_AT_KEYMAP_LOCATION`: By default if any
+      remapping is activated, this module will export the function
+      `keycode_at_keymap_location()`. This option disables this behaviour. To
+      make remapping work, you will have to implement your own
+      `keycode_at_remap_location()` that either calls
+      `keynav_keycode_at_keymap_location()` or optionally calls
+      `keynav_remap_quantum()`.
   - `KEYNAV_NO_AUTO_LAYER_OFF`: Default behavior when a `KEYNAV_LAYER` is
     defined is to deactivate this layer when `QK_KEYNAV_BUTTON_1` or
     `QK_KEYNAV_BUTTON_2` is pressed. With this option defined, the layer will
@@ -55,6 +63,9 @@ Available options:
   - `KEYNAV_MOUSE_BUTTONS_LAYER_OFF`: This will match the behavior of mouse
     button events (including `QK_MOUSE_BUTTON_2`) to the behavior of keynav button
     events.
+- `KEYNAV_NO_AUTO_BUTTON_RELEASE`: By default, `keynav_end()` releases any
+  active buttons. This options makes it so that you can keep a button pressed
+  while restarting key navigation from the center.
 - `KEYNAV_ASSUME_MAX_WIDTH` and `KEYNAV_ASSUME_MAX_HEIGHT`: The keyboard is not
   aware of the resolution of your desktop. Defining an assumed resolution makes
   it so that the pointer doesn't go (very far) into subpixel resolution.

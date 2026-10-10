@@ -10,7 +10,7 @@ ASSERT_COMMUNITY_MODULES_MIN_API_VERSION(1, 0, 0);
 #define KEYNAV_ASSUME_MAX_WIDTH 0
 #endif
 #if !defined(DYNAMIC_MACRO_ENABLE) && defined(DYNAMIC_MACRO_KEYNAV_ONLY_FINAL)
-#error "Dynamic macro not enabled"
+#error "DYNAMIC_MACRO_KEYNAV_ONLY_FINAL without dynamic macros enabled"
 #endif
 
 keynav_state_t keynav_state = {
@@ -214,12 +214,14 @@ uint16_t keynav_keycode_at_keymap_location(uint8_t layer_num, uint8_t row,
   return keycode;
 }
 
-#ifndef KEYNAV_NO_HIJACK_KEYCODE_AT_KEYMAP_LOCATION
+#if !defined(KEYNAV_NO_HIJACK_KEYCODE_AT_KEYMAP_LOCATION) && \
+    (defined(KEYNAV_REMAP_MOUSE_MOVEMENT) || \
+     defined(KEYNAV_REMAP_MOUSE_BUTTONS))
 uint16_t keycode_at_keymap_location(uint8_t layer_num, uint8_t row,
                                     uint8_t col) {
   return keynav_keycode_at_keymap_location(layer_num, row, col);
 }
-#endif // KEYNAV_NO_HIJACK_KEYCODE_AT_KEYMAP_LOCATION
+#endif // KEYNAV_NO_HIJACK_KEYCODE_AT_KEYMAP_LOCATION && (KEYNAV_REMAP_MOUSE_MOVEMENT || KEYNAV_REMAP_MOUSE_BUTTONS)
 
 #ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
 bool pre_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
@@ -372,7 +374,7 @@ bool process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
   case TO(KEYNAV_LAYER):
     if (!keynav_active())
       return true;
-#endif
+#endif // KEYNAV_LAYER
   case QK_KEYNAV_RESET:
     if (record->event.pressed)
       keynav_reset();
