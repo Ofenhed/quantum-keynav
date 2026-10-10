@@ -69,7 +69,8 @@ void keynav_end(void) {
     keynav_flush_state();
 #if defined(DYNAMIC_MACRO_KEYNAV_ONLY_FINAL) &&                                \
     defined(DYNAMIC_MACRO_KEYNAV_DELAY)
-    wait_ms(DYNAMIC_MACRO_KEYNAV_DELAY);
+    if (macro_state)
+      wait_ms(DYNAMIC_MACRO_KEYNAV_DELAY);
 #endif
   }
 }
@@ -214,14 +215,15 @@ uint16_t keynav_keycode_at_keymap_location(uint8_t layer_num, uint8_t row,
   return keycode;
 }
 
-#if !defined(KEYNAV_NO_HIJACK_KEYCODE_AT_KEYMAP_LOCATION) && \
-    (defined(KEYNAV_REMAP_MOUSE_MOVEMENT) || \
+#if !defined(KEYNAV_NO_HIJACK_KEYCODE_AT_KEYMAP_LOCATION) &&                   \
+    (defined(KEYNAV_REMAP_MOUSE_MOVEMENT) ||                                   \
      defined(KEYNAV_REMAP_MOUSE_BUTTONS))
 uint16_t keycode_at_keymap_location(uint8_t layer_num, uint8_t row,
                                     uint8_t col) {
   return keynav_keycode_at_keymap_location(layer_num, row, col);
 }
-#endif // KEYNAV_NO_HIJACK_KEYCODE_AT_KEYMAP_LOCATION && (KEYNAV_REMAP_MOUSE_MOVEMENT || KEYNAV_REMAP_MOUSE_BUTTONS)
+#endif // KEYNAV_NO_HIJACK_KEYCODE_AT_KEYMAP_LOCATION &&
+       // (KEYNAV_REMAP_MOUSE_MOVEMENT || KEYNAV_REMAP_MOUSE_BUTTONS)
 
 #ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
 bool pre_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
