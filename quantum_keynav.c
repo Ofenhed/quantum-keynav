@@ -167,45 +167,32 @@ void post_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
 
 void keynav_remap_quantum(uint16_t *keycode) {
   switch (*keycode) {
-#define KEYNAV_INTERNAL_GRAB_KEYUP()
-    /* { \
-    static bool was_clicked = false; \
-    if (!(keynav_active() || was_clicked)) break; \
-      was_clicked = record->event.pressed; \
-    } */
 #ifdef KEYNAV_REMAP_MOUSE_MOVEMENT
   case QK_MOUSE_CURSOR_LEFT:
-    KEYNAV_INTERNAL_GRAB_KEYUP();
     *keycode = (get_mods() & MOD_MASK_SHIFT) ? QK_KEYNAV_MOVE_LEFT
                                              : QK_KEYNAV_CUT_LEFT;
     break;
   case QK_MOUSE_CURSOR_DOWN:
-    KEYNAV_INTERNAL_GRAB_KEYUP();
     *keycode = (get_mods() & MOD_MASK_SHIFT) ? QK_KEYNAV_MOVE_DOWN
                                              : QK_KEYNAV_CUT_DOWN;
     break;
   case QK_MOUSE_CURSOR_UP:
-    KEYNAV_INTERNAL_GRAB_KEYUP();
     *keycode =
         (get_mods() & MOD_MASK_SHIFT) ? QK_KEYNAV_MOVE_UP : QK_KEYNAV_CUT_UP;
     break;
   case QK_MOUSE_CURSOR_RIGHT:
-    KEYNAV_INTERNAL_GRAB_KEYUP();
     *keycode = (get_mods() & MOD_MASK_SHIFT) ? QK_KEYNAV_MOVE_RIGHT
                                              : QK_KEYNAV_CUT_RIGHT;
     break;
 #endif // KEYNAV_REMAP_MOUSE_MOVEMENT
 #ifdef KEYNAV_REMAP_MOUSE_BUTTONS
   case QK_MOUSE_BUTTON_1:
-    KEYNAV_INTERNAL_GRAB_KEYUP();
     *keycode = QK_KEYNAV_BUTTON_1;
     break;
   case QK_MOUSE_BUTTON_3:
-    KEYNAV_INTERNAL_GRAB_KEYUP();
     *keycode = QK_KEYNAV_BUTTON_2;
     break;
 #endif // KEYNAV_REMAP_MOUSE_BUTTONS
-#undef KEYNAV_INTERNAL_GRAB_KEYUP
   }
 }
 
