@@ -56,7 +56,11 @@ void keynav_end(void) {
     keynav_state.macro_blocked = false;
     keynav_state.in_range = true;
     keynav_flush_state();
-#endif
+#endif // DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
+#ifndef KEYNAV_NO_AUTO_BUTTON_RELEASE
+    keynav_state.button_1 = false;
+    keynav_state.button_2 = false;
+#endif // KEYNAV_NO_AUTO_BUTTON_RELEASE
     digitizer_state.dirty = true;
 
     cancel_deferred_exec(keynav_state.active);
