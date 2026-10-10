@@ -225,12 +225,12 @@ uint16_t keycode_at_keymap_location(uint8_t layer_num, uint8_t row,
 #endif // KEYNAV_NO_HIJACK_KEYCODE_AT_KEYMAP_LOCATION &&
        // (KEYNAV_REMAP_MOUSE_MOVEMENT || KEYNAV_REMAP_MOUSE_BUTTONS)
 
-#ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
 bool pre_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
   bool process_kb = pre_process_record_quantum_keynav_kb(keycode, record);
   if (!process_kb)
     return false;
   switch (keycode) {
+#ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
     int before;
   case QK_DYNAMIC_MACRO_PLAY_1:
     before = macro_state & 1;
@@ -244,10 +244,21 @@ bool pre_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
     process_dynamic_macro(QK_DYNAMIC_MACRO_PLAY_2, record);
     macro_state &= ~before;
     return false;
+#endif // DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
+  case QK_KEYNAV_CUT_LEFT:
+  case QK_KEYNAV_CUT_DOWN:
+  case QK_KEYNAV_CUT_UP:
+  case QK_KEYNAV_CUT_RIGHT:
+  case QK_KEYNAV_MOVE_LEFT:
+  case QK_KEYNAV_MOVE_DOWN:
+  case QK_KEYNAV_MOVE_UP:
+  case QK_KEYNAV_MOVE_RIGHT:
+  case QK_KEYNAV_RESET:
+  case QK_KEYNAV_TOGGLE_ASSUMED_SCREEN_SIZE:
+    if (!record->event.pressed) return false;
   }
   return true;
 }
-#endif // DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
 
 static float into_valid_percent(float val) {
   if (val > 1.0f)
@@ -330,6 +341,8 @@ bool process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
     return true;
   }
 
+  if (!record->event.pressed) return true;
+
   switch (keycode) {
     bool cut;
     keynav_direction_t dir;
@@ -365,12 +378,10 @@ bool process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
       }
       cut = false;
     }
-    if (record->event.pressed)
-      keynav_move(dir, cut);
+    keynav_move(dir, cut);
     return true;
   case QK_KEYNAV_TOGGLE_ASSUMED_SCREEN_SIZE:
-    if (record->event.pressed)
-      keynav_state.assume_screen_size = !keynav_state.assume_screen_size;
+    keynav_state.assume_screen_size = !keynav_state.assume_screen_size;
     break;
 #ifdef KEYNAV_LAYER
   case TO(KEYNAV_LAYER):
@@ -378,8 +389,7 @@ bool process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
       return true;
 #endif // KEYNAV_LAYER
   case QK_KEYNAV_RESET:
-    if (record->event.pressed)
-      keynav_reset();
+    keynav_reset();
     break;
   }
   return true;
