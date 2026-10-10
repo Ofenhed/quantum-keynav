@@ -39,3 +39,6 @@ void keynav_start(void);
 void keynav_enter(void);
 void keynav_flush_state(void);
 void keynav_move(keynav_direction_t direction, bool zoom);
+void keynav_remap_quantum(uint16_t *keycode);
+
+uint16_t keynav_keycode_at_keymap_location(uint8_t layer_num, uint8_t row, uint8_t col);

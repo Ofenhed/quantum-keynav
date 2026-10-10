@@ -17,6 +17,8 @@ keynav_state_t keynav_state = {
     .active = INVALID_DEFERRED_TOKEN,
     .in_range = false,
     .enabled = true,
+    .button_1 = false,
+    .button_2 = false,
 #ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
     .macro_blocked = false,
 #endif // DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
@@ -41,8 +43,6 @@ void keynav_reset(void) {
   keynav_state.y.window_width = 1.0f / 4;
   keynav_state.x.coord = 0.5f;
   keynav_state.y.coord = 0.5f;
-  keynav_state.button_1 = false;
-  keynav_state.button_2 = false;
   keynav_state.in_range = false;
   if (keynav_active()) {
     digitizer_state.dirty = true;
@@ -57,8 +57,6 @@ void keynav_end(void) {
     keynav_state.in_range = true;
     keynav_flush_state();
 #endif
-    keynav_state.button_1 = false;
-    keynav_state.button_2 = false;
     digitizer_state.dirty = true;
 
     cancel_deferred_exec(keynav_state.active);
@@ -166,68 +164,91 @@ void post_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
 }
 #endif // !defined(KEYNAV_NO_AUTO_LAYER_OFF) && defined(KEYNAV_LAYER)
 
-#if defined(KEYNAV_REMAP_MOUSE_BUTTONS) ||                                     \
-    defined(KEYNAV_REMAP_MOUSE_MOVEMENT) ||                                    \
-    defined(DYNAMIC_MACRO_KEYNAV_ONLY_FINAL)
-bool pre_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
-#ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
-  if (keynav_state.enabled) {
-    switch (keycode) {
-    case QK_DYNAMIC_MACRO_PLAY_1:
-      record->keycode = QK_KEYNAV_DYNAMIC_MACRO_PLAY_1;
-      if (false) {
-      case QK_DYNAMIC_MACRO_PLAY_2:
-        record->keycode = QK_KEYNAV_DYNAMIC_MACRO_PLAY_2;
-      }
-      return pre_process_record_quantum_keynav_kb(record->keycode, record);
-    }
-  }
-#endif // DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
-  switch (keycode) {
-#define KEYNAV_INTERNAL_GRAB_KEYUP() { \
-          static bool was_clicked = false; \
-          if (!(keynav_active() || was_clicked)) break; \
-          was_clicked = record->event.pressed; \
-        }
-#ifdef KEYNAV_REMAP_MOUSE_MOVEMENT
+void keynav_remap_quantum(uint16_t *keycode) {
+  switch (*keycode) {
+#define KEYNAV_INTERNAL_GRAB_KEYUP()
+  /* { \
+  static bool was_clicked = false; \
+  if (!(keynav_active() || was_clicked)) break; \
+    was_clicked = record->event.pressed; \
+  } */
+#  ifdef KEYNAV_REMAP_MOUSE_MOVEMENT
     case QK_MOUSE_CURSOR_LEFT:
       KEYNAV_INTERNAL_GRAB_KEYUP();
-      record->keycode = (get_mods() & MOD_MASK_SHIFT) ? QK_KEYNAV_MOVE_LEFT
+      *keycode = (get_mods() & MOD_MASK_SHIFT) ? QK_KEYNAV_MOVE_LEFT
                                                       : QK_KEYNAV_CUT_LEFT;
       break;
     case QK_MOUSE_CURSOR_DOWN:
       KEYNAV_INTERNAL_GRAB_KEYUP();
-      record->keycode = (get_mods() & MOD_MASK_SHIFT) ? QK_KEYNAV_MOVE_DOWN
+      *keycode = (get_mods() & MOD_MASK_SHIFT) ? QK_KEYNAV_MOVE_DOWN
                                                       : QK_KEYNAV_CUT_DOWN;
       break;
     case QK_MOUSE_CURSOR_UP:
       KEYNAV_INTERNAL_GRAB_KEYUP();
-      record->keycode =
+      *keycode =
           (get_mods() & MOD_MASK_SHIFT) ? QK_KEYNAV_MOVE_UP : QK_KEYNAV_CUT_UP;
       break;
     case QK_MOUSE_CURSOR_RIGHT:
       KEYNAV_INTERNAL_GRAB_KEYUP();
-      record->keycode = (get_mods() & MOD_MASK_SHIFT) ? QK_KEYNAV_MOVE_RIGHT
+      *keycode = (get_mods() & MOD_MASK_SHIFT) ? QK_KEYNAV_MOVE_RIGHT
                                                       : QK_KEYNAV_CUT_RIGHT;
       break;
-#endif // KEYNAV_REMAP_MOUSE_MOVEMENT
-#ifdef KEYNAV_REMAP_MOUSE_BUTTONS
+#  endif // KEYNAV_REMAP_MOUSE_MOVEMENT
+#  ifdef KEYNAV_REMAP_MOUSE_BUTTONS
     case QK_MOUSE_BUTTON_1:
       KEYNAV_INTERNAL_GRAB_KEYUP();
-      record->keycode = QK_KEYNAV_BUTTON_1;
+      *keycode = QK_KEYNAV_BUTTON_1;
       break;
     case QK_MOUSE_BUTTON_3:
       KEYNAV_INTERNAL_GRAB_KEYUP();
-      record->keycode = QK_KEYNAV_BUTTON_2;
+      *keycode = QK_KEYNAV_BUTTON_2;
       break;
-#endif // KEYNAV_REMAP_MOUSE_BUTTONS
+#  endif // KEYNAV_REMAP_MOUSE_BUTTONS
 #undef KEYNAV_INTERNAL_GRAB_KEYUP
   }
-  return pre_process_record_quantum_keynav_kb(record->keycode, record);
 }
-#endif // defined(KEYNAV_REMAP_MOUSE_BUTTONS) ||
-       // defined(KEYNAV_REMAP_MOUSE_MOVEMENT) ||
-       // defined(DYNAMIC_MACRO_KEYNAV_ONLY_FINAL)
+
+uint16_t keycode_at_keymap_location_raw(uint8_t layer_num, uint8_t row, uint8_t col);
+uint16_t keynav_keycode_at_keymap_location(uint8_t layer_num, uint8_t row, uint8_t col) {
+  uint16_t keycode = keycode_at_keymap_location_raw(layer_num, row, col);
+#ifdef KEYNAV_LAYER
+  if (layer_num == KEYNAV_LAYER)
+#else
+  if (keynav_active())
+#endif
+    keynav_remap_quantum(&keycode);
+  return keycode;
+}
+
+#ifndef KEYNAV_NO_HIJACK_KEYCODE_AT_KEYMAP_LOCATION
+uint16_t keycode_at_keymap_location(uint8_t layer_num, uint8_t row, uint8_t col) {
+  return keynav_keycode_at_keymap_location(layer_num, row, col);
+}
+#endif // KEYNAV_NO_HIJACK_KEYCODE_AT_KEYMAP_LOCATION
+
+#ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
+bool pre_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
+  bool process_kb = pre_process_record_quantum_keynav_kb(keycode, record);
+  if (!process_kb) return false;
+  switch (keycode) {
+    int before;
+  case QK_DYNAMIC_MACRO_PLAY_1:
+    before = macro_state & 1;
+    macro_state |= 1;
+    process_dynamic_macro(QK_DYNAMIC_MACRO_PLAY_1, record);
+    macro_state &= ~before;
+    return false;
+  case QK_DYNAMIC_MACRO_PLAY_2:
+    before = macro_state & 2;
+    macro_state |= 2;
+    process_dynamic_macro(QK_DYNAMIC_MACRO_PLAY_2, record);
+    macro_state &= ~before;
+    return false;
+  }
+  return true;
+}
+#endif // DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
+
 
 static float into_valid_percent(float val) {
   if (val > 1.0f)
@@ -288,27 +309,9 @@ bool process_dynamic_macro(uint16_t keycode, keyrecord_t *record);
 #endif
 
 bool process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
-#ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
-  bool result = false;
-  switch (keycode) {
-    int before;
-  case QK_KEYNAV_DYNAMIC_MACRO_PLAY_1:
-    before = macro_state & 1;
-    macro_state |= 1;
-    result = process_dynamic_macro(QK_DYNAMIC_MACRO_PLAY_1, record);
-    macro_state &= ~before;
-    return result;
-  case QK_KEYNAV_DYNAMIC_MACRO_PLAY_2:
-    before = macro_state & 2;
-    macro_state |= 2;
-    result = process_dynamic_macro(QK_DYNAMIC_MACRO_PLAY_2, record);
-    macro_state &= ~before;
-    return result;
-  }
-#endif
-
-  if (!keynav_active())
-    return process_record_quantum_keynav_kb(keycode, record);
+  bool process_kb = process_record_quantum_keynav_kb(keycode, record);
+  if (!process_kb)
+    return false;
 
   switch (keycode) {
   case QK_KEYNAV_BUTTON_1:
@@ -325,46 +328,59 @@ bool process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
       keynav_state.button_2 = record->event.pressed != 0;
     }
     keynav_flush_state();
-    return process_record_quantum_keynav_kb(keycode, record);
+    return true;
   }
 
-  if (!record->event.pressed)
-    return process_record_quantum_keynav_kb(keycode, record);
-
   switch (keycode) {
-  case QK_KEYNAV_CUT_LEFT:
-    keynav_move(KEYNAV_LEFT, true);
-    break;
-  case QK_KEYNAV_CUT_DOWN:
-    keynav_move(KEYNAV_DOWN, true);
-    break;
-  case QK_KEYNAV_CUT_UP:
-    keynav_move(KEYNAV_UP, true);
-    break;
-  case QK_KEYNAV_CUT_RIGHT:
-    keynav_move(KEYNAV_RIGHT, true);
-    break;
-  case QK_KEYNAV_MOVE_LEFT:
-    keynav_move(KEYNAV_LEFT, false);
-    break;
-  case QK_KEYNAV_MOVE_DOWN:
-    keynav_move(KEYNAV_DOWN, false);
-    break;
-  case QK_KEYNAV_MOVE_UP:
-    keynav_move(KEYNAV_UP, false);
-    break;
-  case QK_KEYNAV_MOVE_RIGHT:
-    keynav_move(KEYNAV_RIGHT, false);
-    break;
+    bool cut;
+    keynav_direction_t dir;
+    case QK_KEYNAV_CUT_LEFT:
+    dir = KEYNAV_LEFT;
+    if (false) {
+      case QK_KEYNAV_CUT_DOWN:
+        dir = KEYNAV_DOWN;
+    }
+    if (false) {
+      case QK_KEYNAV_CUT_UP:
+        dir = KEYNAV_UP;
+    }
+    if (false) {
+      case QK_KEYNAV_CUT_RIGHT:
+        dir = KEYNAV_RIGHT;
+    }
+    cut = true;
+    if (false) {
+      case QK_KEYNAV_MOVE_LEFT:
+      dir = KEYNAV_LEFT;
+      if (false) {
+        case QK_KEYNAV_MOVE_DOWN:
+          dir = KEYNAV_DOWN;
+      }
+      if (false) {
+        case QK_KEYNAV_MOVE_UP:
+          dir = KEYNAV_UP;
+      }
+      if (false) {
+        case QK_KEYNAV_MOVE_RIGHT:
+          dir = KEYNAV_RIGHT;
+      }
+      cut = false;
+    }
+    if (record->event.pressed)
+      keynav_move(dir, cut);
+    return true;
   case QK_KEYNAV_TOGGLE_ASSUMED_SCREEN_SIZE:
-    keynav_state.assume_screen_size = !keynav_state.assume_screen_size;
+    if (record->event.pressed)
+      keynav_state.assume_screen_size = !keynav_state.assume_screen_size;
     break;
 #ifdef KEYNAV_LAYER
   case TO(KEYNAV_LAYER):
+    if (!keynav_active()) return true;
 #endif
   case QK_KEYNAV_RESET:
-    keynav_reset();
+    if (record->event.pressed)
+      keynav_reset();
     break;
   }
-  return process_record_quantum_keynav_kb(keycode, record);
+  return true;
 }
