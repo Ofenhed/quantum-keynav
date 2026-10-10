@@ -237,6 +237,14 @@ static float into_valid_percent(float val) {
   return val;
 }
 
+__attribute__((weak)) double nextafter(double x, double y) {
+    if (y > 0) {
+        return x + 1e-10;
+    } else {
+        return x - 1e-10;
+    }
+}
+
 static void keynav_move_towards(keynav_axis_t *axis, int direction) {
   const float minimal_change =
       isnan(axis->assumed_pixel_size)
