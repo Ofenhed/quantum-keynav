@@ -2,15 +2,18 @@ This is a generic version of [keynav](https://github.com/jordansissel/keynav),
 but installed on a QMK keyboard instead of as a program on the computer.
 
 ## Pros compared to keynav:
-- It should be more generic, working the same way between X11, Windows, and probably (albeit untested) Wayland and OS X.
+- It should be more generic, working the same way between X11, Windows, Wayland
+  and probably (albeit untested) OS X.
+- It doesn't require any additional software to be running on the computer.
 
 ## Cons compared to keynav:
 - There is no visual indicator of where the mouse pointer can
   jump.
-- The mouse is instantly moved instead of only moving an indicator. This is
-  quite problematic if you have focus following the mouse pointer. This could
-  be mitigated by disabling focus follows mouse when the `proximity-in` event
-  is received, and turning it back on when `proximity-out` is received.
+- The mouse is instantly moved instead of only moving an indicator. This could
+  be quite problematic (or at least a bit annoying) if you have focus following
+  the mouse pointer. This could be mitigated by disabling focus follows mouse
+  when the `proximity-in` event is received, and turning it back on when
+  `proximity-out` is received.
 - Not compatible with keynav config files.
 - Your keyboard is not aware of your display resolution, layout, or contents.
   - You quickly end up in subpixel level accuracy. (See
@@ -36,7 +39,7 @@ ENV{LIBINPUT_TABLET_TOOL_TYPE_PEN}="1"
 LABEL="not_a_tablet"
 ```
 
-Available options:
+## Available QMK Options
 - `KEYNAV_LAYER`: If you dedicate a layer to keynav, it will automatically
   enable/disable keynav when you activate/deactivate the specified layer,
   otherwise you have to manually do it with `keynav_start()` and
