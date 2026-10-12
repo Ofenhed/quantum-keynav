@@ -10,8 +10,12 @@ ASSERT_COMMUNITY_MODULES_MIN_API_VERSION(1, 0, 0);
 #ifndef KEYNAV_ASSUME_MAX_WIDTH
 #define KEYNAV_ASSUME_MAX_WIDTH 0
 #endif
-#if defined(DYNAMIC_MACRO_ENABLE) && !defined(KEYNAV_NO_TRIM_DYNAMIC_MACRO)
+#ifndef KEYNAV_NO_TRIM_DYNAMIC_MACRO
+#ifdef DYNAMIC_MACRO_ENABLE
 #include "process_keycode/process_dynamic_macro.h"
+#else
+#define KEYNAV_NO_TRIM_DYNAMIC_MACRO
+#endif
 #endif
 
 keynav_state_t keynav_state = {
