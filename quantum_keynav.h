@@ -22,9 +22,9 @@ typedef struct {
   unsigned int button_1 : 1;
   unsigned int button_2 : 1;
   unsigned int enabled : 1;
-#ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
+#ifndef KEYNAV_NO_TRIM_DYNAMIC_MACRO
   unsigned int macro_blocked : 1;
-#endif // DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
+#endif
   unsigned int in_range : 1;
 
   unsigned int assume_screen_size : 1;

@@ -1,5 +1,6 @@
 #include QMK_KEYBOARD_H
 #include "quantum_keynav.h"
+#include "keymap_introspection.h"
 ASSERT_COMMUNITY_MODULES_MIN_API_VERSION(1, 0, 0);
 #include <math.h>
 
@@ -9,8 +10,8 @@ ASSERT_COMMUNITY_MODULES_MIN_API_VERSION(1, 0, 0);
 #ifndef KEYNAV_ASSUME_MAX_WIDTH
 #define KEYNAV_ASSUME_MAX_WIDTH 0
 #endif
-#if !defined(DYNAMIC_MACRO_ENABLE) && defined(DYNAMIC_MACRO_KEYNAV_ONLY_FINAL)
-#error "DYNAMIC_MACRO_KEYNAV_ONLY_FINAL without dynamic macros enabled"
+#if defined(DYNAMIC_MACRO_ENABLE) && !defined(KEYNAV_NO_TRIM_DYNAMIC_MACRO)
+#include "process_keycode/process_dynamic_macro.h"
 #endif
 
 keynav_state_t keynav_state = {
@@ -19,9 +20,9 @@ keynav_state_t keynav_state = {
     .enabled = true,
     .button_1 = false,
     .button_2 = false,
-#ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
+#ifndef KEYNAV_NO_TRIM_DYNAMIC_MACRO
     .macro_blocked = false,
-#endif // DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
+#endif // KEYNAV_NO_TRIM_DYNAMIC_MACRO
     .assume_screen_size = true,
     .x = {.assumed_pixel_size = KEYNAV_ASSUME_MAX_WIDTH
                                     ? 1.0f / KEYNAV_ASSUME_MAX_WIDTH
@@ -34,9 +35,9 @@ bool keynav_active(void) {
   return keynav_state.enabled && keynav_state.active != INVALID_DEFERRED_TOKEN;
 }
 
-#ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
+#ifndef KEYNAV_NO_TRIM_DYNAMIC_MACRO
 static uint8_t macro_state = 0;
-#endif
+#endif // KEYNAV_NO_TRIM_DYNAMIC_MACRO
 
 void keynav_reset(void) {
   keynav_state.x.window_width = 1.0f / 4;
@@ -52,11 +53,11 @@ void keynav_reset(void) {
 
 void keynav_end(void) {
   if (keynav_active()) {
-#ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
+#ifndef KEYNAV_NO_TRIM_DYNAMIC_MACRO
     keynav_state.macro_blocked = false;
     keynav_state.in_range = true;
     keynav_flush_state();
-#endif // DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
+#endif // KEYNAV_NO_TRIM_DYNAMIC_MACRO
 #ifndef KEYNAV_NO_AUTO_BUTTON_RELEASE
     keynav_state.button_1 = false;
     keynav_state.button_2 = false;
@@ -67,7 +68,7 @@ void keynav_end(void) {
     keynav_state.in_range = false;
     keynav_state.active = INVALID_DEFERRED_TOKEN;
     keynav_flush_state();
-#if defined(DYNAMIC_MACRO_KEYNAV_ONLY_FINAL) &&                                \
+#if !defined(KEYNAV_NO_TRIM_DYNAMIC_MACRO) &&                                  \
     defined(DYNAMIC_MACRO_KEYNAV_DELAY)
     if (macro_state)
       wait_ms(DYNAMIC_MACRO_KEYNAV_DELAY);
@@ -81,11 +82,11 @@ void keynav_end(void) {
 
 static uint32_t keynav_ping_proximity_callback(uint32_t trigger_time,
                                                void *cb_arg) {
-#ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
+#ifndef KEYNAV_NO_TRIM_DYNAMIC_MACRO
   if (keynav_state.macro_blocked != 0) {
     return KEYNAV_PROXIMITY_INTERVAL;
   }
-#endif
+#endif // KEYNAV_NO_TRIM_DYNAMIC_MACRO
   digitizer_state.dirty = true;
   keynav_flush_state();
   return KEYNAV_PROXIMITY_INTERVAL;
@@ -96,7 +97,7 @@ void keynav_start(void) {
     if (!keynav_active()) {
       keynav_state.active = defer_exec(KEYNAV_PROXIMITY_INTERVAL,
                                        keynav_ping_proximity_callback, NULL);
-#ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
+#ifndef KEYNAV_NO_TRIM_DYNAMIC_MACRO
       keynav_state.macro_blocked = macro_state != 0;
 #endif
       keynav_reset();
@@ -122,10 +123,10 @@ void keynav_flush_state(void) {
   digitizer_state.dirty |= pointer_moved || button_changed || in_range_changed;
 
   const bool macro_blocked =
-#ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
-      keynav_state.macro_blocked;
-#else
+#ifdef KEYNAV_NO_TRIM_DYNAMIC_MACRO
       false;
+#else
+      keynav_state.macro_blocked;
 #endif
   if (digitizer_state.dirty && !macro_blocked) {
     digitizer_state.x = keynav_state.x.coord;
@@ -163,7 +164,14 @@ void post_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
     case QK_MOUSE_BUTTON_2:
     case QK_MOUSE_BUTTON_3:
 #endif // KEYNAV_MOUSE_BUTTONS_LAYER_OFF
+#ifdef KEYNAV_AUTO_LAYER_OFF_TO
+      if (IS_LAYER_ON(KEYNAV_AUTO_LAYER_OFF_TO))
+        layer_off(KEYNAV_LAYER);
+      else
+        layer_xor((1 << KEYNAV_LAYER) | (1 << KEYNAV_AUTO_LAYER_OFF_TO));
+#else
       layer_off(KEYNAV_LAYER);
+#endif
     }
   }
   post_process_record_quantum_keynav_kb(keycode, record);
@@ -201,8 +209,6 @@ void keynav_remap_quantum(uint16_t *keycode) {
   }
 }
 
-uint16_t keycode_at_keymap_location_raw(uint8_t layer_num, uint8_t row,
-                                        uint8_t col);
 uint16_t keynav_keycode_at_keymap_location(uint8_t layer_num, uint8_t row,
                                            uint8_t col) {
   uint16_t keycode = keycode_at_keymap_location_raw(layer_num, row, col);
@@ -230,7 +236,7 @@ bool pre_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
   if (!process_kb)
     return false;
   switch (keycode) {
-#ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
+#ifndef KEYNAV_NO_TRIM_DYNAMIC_MACRO
     int before;
   case QK_DYNAMIC_MACRO_PLAY_1:
     before = macro_state & 1;
@@ -244,7 +250,7 @@ bool pre_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
     process_dynamic_macro(QK_DYNAMIC_MACRO_PLAY_2, record);
     macro_state &= ~before;
     return false;
-#endif // DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
+#endif // KEYNAV_NO_TRIM_DYNAMIC_MACRO
   case QK_KEYNAV_CUT_LEFT:
   case QK_KEYNAV_CUT_DOWN:
   case QK_KEYNAV_CUT_UP:
@@ -255,7 +261,8 @@ bool pre_process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
   case QK_KEYNAV_MOVE_RIGHT:
   case QK_KEYNAV_RESET:
   case QK_KEYNAV_TOGGLE_ASSUMED_SCREEN_SIZE:
-    if (!record->event.pressed) return false;
+    if (!record->event.pressed)
+      return false;
   }
   return true;
 }
@@ -314,10 +321,6 @@ void keynav_move(keynav_direction_t direction, bool zoom) {
   keynav_flush_state();
 }
 
-#ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
-bool process_dynamic_macro(uint16_t keycode, keyrecord_t *record);
-#endif
-
 bool process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
   bool process_kb = process_record_quantum_keynav_kb(keycode, record);
   if (!process_kb)
@@ -326,12 +329,12 @@ bool process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
   switch (keycode) {
   case QK_KEYNAV_BUTTON_1:
   case QK_KEYNAV_BUTTON_2:
-#ifdef DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
+#ifndef KEYNAV_NO_TRIM_DYNAMIC_MACRO
     if (keynav_state.macro_blocked) {
       keynav_state.macro_blocked = false;
       keynav_flush_state();
     }
-#endif // DYNAMIC_MACRO_KEYNAV_ONLY_FINAL
+#endif // KEYNAV_NO_TRIM_DYNAMIC_MACRO
     if (keycode == QK_KEYNAV_BUTTON_1) {
       keynav_state.button_1 = record->event.pressed != 0;
     } else {
@@ -341,7 +344,8 @@ bool process_record_quantum_keynav(uint16_t keycode, keyrecord_t *record) {
     return true;
   }
 
-  if (!record->event.pressed) return true;
+  if (!record->event.pressed)
+    return true;
 
   switch (keycode) {
     bool cut;

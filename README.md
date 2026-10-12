@@ -39,6 +39,14 @@ ENV{LIBINPUT_TABLET_TOOL_TYPE_PEN}="1"
 LABEL="not_a_tablet"
 ```
 
+## Recommended configuration
+If you want to try this module out, I would recommend that you create a layer
+with mouse controls (movement and clicks) and set `KEYNAV_KAYER` to that layer.
+Set `KEYNAV_REMAP_MOUSE_BUTTONS` and `KEYNAV_REMAP_MOUSE_MOVEMENT`, this way
+you can use a visual configurator which doesn't have any keycodes from this
+module. If you have a mousekey layer, I would recommend that you set
+`KEYNAV_AUTO_LAYER_OFF_TO` to that layer.
+
 ## Available QMK Options
 - `KEYNAV_LAYER`: If you dedicate a layer to keynav, it will automatically
   enable/disable keynav when you activate/deactivate the specified layer,
@@ -63,6 +71,10 @@ LABEL="not_a_tablet"
     defined is to deactivate this layer when `QK_KEYNAV_BUTTON_1` or
     `QK_KEYNAV_BUTTON_2` is pressed. With this option defined, the layer will
     stay active.
+  - `KEYNAV_AUTO_LAYER_OFF_TO`: If you don't want to return to base layer when
+    the layer is automatically turned off, you can use this option to jump to
+    another layer. A good use case for this is to go from the keynav layer to a
+    regular mouse layer.
   - `KEYNAV_MOUSE_BUTTONS_LAYER_OFF`: This will match the behavior of mouse
     button events (including `QK_MOUSE_BUTTON_2`) to the behavior of keynav button
     events.
@@ -79,9 +91,10 @@ LABEL="not_a_tablet"
   50 ms (on my machine). To avoid timeouts, the keyboard will send updates at
   an interval of ~20 ms. If you want another interval, then you can set it with
   this option.
-- `DYNAMIC_MACRO_KEYNAV_ONLY_FINAL`: When playing a macro, only move the cursor
-  to where navigation ends or `QK_KEYNAV_BUTTON_1` or `QK_KEYNAV_BUTTON_2` is
-  pressed.
+- `KEYNAV_NO_TRIM_DYNAMIC_MACRO`: By default when playing a macro, the cursor
+  is moved to where navigation ends, or where `QK_KEYNAV_BUTTON_1` or
+  `QK_KEYNAV_BUTTON_2` are first pressed. This makes it so that all movemen
+  happening during macro record also happens during playback
 - `DYNAMIC_MACRO_KEYNAV_DELAY`: After playing a macro, delay for the keyboard
   and navigation to be synced up by the OS.
 
